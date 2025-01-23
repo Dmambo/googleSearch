@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 7000
 app.use(bodyParser.json());
 
 let data = JSON.stringify({
-  "q": "offres de télécommunication publiées aujourd'hui en Guinée Conakry",
+  "q": "site:gn (\"offre d'emploi\" OR \"recrutement\" OR \"postuler maintenant\") (\"technologie\" OR \"informatique\" OR \"développeur\" OR \"technicien\" OR \"cybersécurité\" OR \"réseaux\") \"Guinée Conakry\" -stage",
   "location": "Guinea",
   "gl": "gn",
   "hl": "fr",
@@ -37,8 +37,12 @@ async function makeRequest() {
       snippet: result.snippet,
       link: result.link,
     }));
-
-    console.log(JSON.stringify(formattedResults, null, 2));
+    
+    if (formattedResults.length === 0) {
+      console.log("no result was found")
+    }else {
+      console.log(JSON.stringify(formattedResults, null, 2));
+    }
   }
   catch (error) {
     console.log(error);

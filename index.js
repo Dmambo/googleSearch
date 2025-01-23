@@ -1,96 +1,62 @@
-const { getJson } = require("serpapi");
+const axios = require('axios');
 const express = require("express");
 const bodyParser = require("body-parser");
 require ("dotenv").config()
 
 const app = express();
-const PORT = 6000;
-
-
-
+const PORT = process.env.PORT || 7000
 app.use(bodyParser.json());
 
-// Define API key and query
-const apiKey = process.env.MY_API_KEY;
-const query = '"offres d\'emploi télécommunication Guinée Conakry" "publié aujourd\'hui" -site:fr -site:sn -site:ci';
+let data = JSON.stringify({
+  "q": "offres de télécommunication publiées aujourd'hui en Guinée Conakry",
+  "location": "Guinea",
+  "gl": "gn",
+  "hl": "fr",
+  "tbs": "qdr:d"
+});
 
+let config = {
+  method: 'post',
+  maxBodyLength: Infinity,
+  url: 'https://google.serper.dev/search',
+  headers: { 
+    'X-API-KEY': process.env.SERPER_API_KEY, 
+    'Content-Type': 'application/json'
+  },
+  data : data
+};
 
-// Fetch and Save Data
-async function searchAndSave() {
-  console.log("Searching for today's telecommunication offers...");
+async function makeRequest() {
+  try {
+    const response = await axios.request(config);
+    const organicResults = response.data.organic;
+    
+    // Extract and format the required fields
+    const formattedResults = organicResults.map(result => ({
+      title: result.title,
+      snippet: result.snippet,
+      link: result.link,
+    }));
 
-  getJson(
-    {
-      engine: "google",
-      q: query,
-      api_key: apiKey,
-      tbs: "qdr:d", // Filters results to only the past day
-      gl: "gn",
-      hl: "fr", // Language for the results (French)
-    },
-    async (json) => {
-      try {
-        const results = json["organic_results"];
-        if (results && results.length > 0) {
-          // Extract URLs and titles
-          const urls = results.map((result) => ({
-            url: result.link,
-            title: result.title,
-          }));
-
-          let links = "";
-          urls.forEach((u) => {
-            // if (u.url.includes("guinea") || u.url.includes("guinee")) {
-              links += u.url + "\n";
-            // }
-            
-          });
-
-          console.log(links.toString());
-
-          // Send the body as a string
-          const requestOptions = {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              urls: (links != "") ? links.toString() : "SUCCESS",
-            }),
-            redirect: "follow",
-          };
-
-          const response = await fetch(
-            "https://hook.eu1.make.com/5lm97ov5q9zg4qnmhewlrn5qxe11t733",
-            requestOptions
-          );
-
-          if (response.ok) {
-            console.log("Data sent successfully");
-          } else {
-            console.error("Failed to send data:", response.status, response.statusText);
-          }
-        } else {
-          console.log("No results found.");
-        }
-      } catch (error) {
-        console.error("Error processing results:", error.message);
-      }
-    }
-  );
+    console.log(JSON.stringify(formattedResults, null, 2));
+  }
+  catch (error) {
+    console.log(error);
+  }
 }
 
-app.get("/search", (req, res) => {
-  searchAndSave()
-    .then(() => {
-      res.status(200).send("Search completed successfully.");
-    })
-    .catch((error) => {
-      console.error("Error during search:", error);
-      res.status(500).send("Internal Server Error");
-    });
-});
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.get("/search", (req, res) => {
+    makeRequest()
+      .then(() => {
+        res.status(200).send("Search completed successfully.");
+      })
+      .catch((error) => {
+        console.error("Error during search:", error);
+        res.status(500).send("Internal Server Error");
+      });
+  });
+  
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });

@@ -6,15 +6,18 @@ require ("dotenv").config()
 const app = express();
 const PORT = 6000;
 
+
+
 app.use(bodyParser.json());
 
 // Define API key and query
 const apiKey = process.env.MY_API_KEY;
-const query = "offres de télécommunication publiées aujourd'hui en Guinée Conakry";
+const query = '"offres d\'emploi télécommunication Guinée Conakry" "publié aujourd\'hui" -site:fr -site:sn -site:ci';
+
 
 // Fetch and Save Data
 async function searchAndSave() {
-  console.log("Searching for today's telecommunication offers in Guinea Conakry...");
+  console.log("Searching for today's telecommunication offers...");
 
   getJson(
     {
@@ -22,7 +25,7 @@ async function searchAndSave() {
       q: query,
       api_key: apiKey,
       tbs: "qdr:d", // Filters results to only the past day
-      gl: "gn", // Geolocation for Guinea (ISO country code)
+      gl: "gn",
       hl: "fr", // Language for the results (French)
     },
     async (json) => {
@@ -33,12 +36,17 @@ async function searchAndSave() {
           const urls = results.map((result) => ({
             url: result.link,
             title: result.title,
-            snippet: result.snippet, // Optional: Get the offer description/snippet
           }));
 
-          let offers = urls.map((u) => `${u.title}\n${u.url}\n${u.snippet}\n`).join("\n");
+          let links = "";
+          urls.forEach((u) => {
+            // if (u.url.includes("guinea") || u.url.includes("guinee")) {
+              links += u.url + "\n";
+            // }
+            
+          });
 
-          console.log(offers);
+          console.log(links.toString());
 
           // Send the body as a string
           const requestOptions = {
@@ -47,7 +55,7 @@ async function searchAndSave() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              offers: offers,
+              urls: (links != "") ? links.toString() : "SUCCESS",
             }),
             redirect: "follow",
           };
